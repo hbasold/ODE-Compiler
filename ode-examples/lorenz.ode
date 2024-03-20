@@ -1,0 +1,19 @@
+
+system {
+    var rho = 28;
+    var sigma = 10;
+    var beta = 8 / 3;
+    var x = integ(sigma * (y - x), 0);
+    var y = integ(x * (rho - z) - y, 2);
+    var z = integ(x * y - beta * z, 20);
+    emit x as x;
+    emit y as y;
+    emit z as z;
+    interval rho = [28, 28];
+    interval sigma = [10, 10];
+    interval beta = [8 / 3, 8 / 3];
+    interval x = [-40, 40];
+    interval y = [-40, 40];
+    interval z = [-40, 40];
+    time 35;
+}
