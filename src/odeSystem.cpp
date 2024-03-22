@@ -13,7 +13,7 @@ std::string ODESystem::parseVar(std::string &inp) {
 		throw std::invalid_argument("Variable not found");
 	}
 
-	inp = inp.substr(pos + 4);
+	inp = inp.substr(pos + 4);	//remove 'var '
 
 	int i = 0;
 	std::string varName;
@@ -22,7 +22,8 @@ std::string ODESystem::parseVar(std::string &inp) {
 		varName += c;
 		i += 1;
 	}
-	inp = inp.substr(i + 3);
+	inp = inp.substr(i+3);	//remove ' = '
+	inp.pop_back();	//delete final ';'
 
 	return varName;
 } 
@@ -106,7 +107,7 @@ int ODESystem::readODESystem(std::ifstream& inp) {
 				}
 			}
 			for (int i = 0; i < (int)ode.varNames.size(); i += 1) {
-				std::cout << ode.varNames[i] << ' ' << ode.varValues[i] << " [" << ode.interval[i].first << ';' << ode.interval[i].second << "]\n";
+				std::cout << "<" << ode.varNames[i] << "><" << ode.varValues[i] << "> [" << ode.interval[i].first << ';' << ode.interval[i].second << "]\n";
 			} 
 			std::cout << ode.time << "\n\n";
 			ODES.push_back(ode);
