@@ -8,52 +8,68 @@
 #include "include/odeSystem.h"
 
 std::string ODESystem::parseVar(std::string &inp) {
-	while (inp.substr(0, 3) != "var") {
-		inp = inp.substr(1);
+	size_t pos = inp.find("var");
+	if (pos == std::string::npos) {
+		throw std::invalid_argument("Variable not found");
 	}
-	inp = inp.substr(4);
 
+	inp = inp.substr(pos + 4);
+
+	int i = 0;
 	std::string varName;
-	while (inp[0] != ' ') {
-		varName += inp[0];
-		inp = inp.substr(1);
+	for (char c : inp) {
+		if (c == ' ') break;
+		varName += c;
+		i += 1;
 	}
-	inp = inp.substr(3, (int)inp.length()-4);
+	inp = inp.substr(i + 3);
 
 	return varName;
 } 
 
 std::pair<double, double> ODESystem::parseInterval(std::string &inp) {
-	std::string buf1, buf2;
-	while (inp[0] != '[') {
-		inp = inp.substr(1);
-	} inp = inp.substr(1);
+	size_t start = inp.find('[');
+	size_t comma = inp.find(',');
+	size_t end = inp.find(']');
 
-	while (inp[0] != ',') {
-		buf1 += inp[0];
-		inp = inp.substr(1);
-	} inp = inp.substr(1);
-
-	while (inp[0] != ']') {
-		buf2 += inp[0];
-		inp = inp.substr(1);
+	if (start == std::string::npos || comma == std::string::npos || end == std::string::npos) {
+		throw std::invalid_argument("Interval not correctly formatted");
 	}
 
-	return std::make_pair(std::stod(buf1), std::stod(buf2));
+	std::string buf1 = inp.substr(start + 1, comma - start - 1);
+	std::string buf2 = inp.substr(comma + 1, end - comma - 1);
+	std::pair<double, double> res;
+	try {
+		res = std::make_pair(std::stod(buf1), std::stod(buf2));
+	} catch(std::invalid_argument &e) {
+		throw std::invalid_argument("Failed to parse interval");
+	}
+
+	return res;
 }
 
 double ODESystem::parseTime(std::string &inp) {
-	std::string buf;
-	while (inp[0] != 'e') {
-		inp = inp.substr(1);
-	} inp = inp.substr(2);
-	
-	while (inp[0] != ';') {
-		buf += inp[0];
-		inp = inp.substr(1);
+	size_t pos = inp.find("time");
+	if (pos == std::string::npos) {
+		throw std::invalid_argument("Time not found");
 	}
 
-	return std::stod(buf);
+	inp = inp.substr(pos + 5);
+
+	std::string buf;
+	for (char c : inp) {
+		if (c == ';') break;
+		buf += c;
+	}
+
+	double res;
+	try {
+		res = std::stod(buf);
+	} catch (std::invalid_argument &e) {
+		throw std::invalid_argument("Failed to parse time");
+	}
+
+	return res;
 }
 
 int ODESystem::readODESystem(std::ifstream& inp) {
@@ -64,14 +80,29 @@ int ODESystem::readODESystem(std::ifstream& inp) {
 			ODE ode;
 			while(std::getline(inp, line) && line != "}") {
 				if (line.find("var") != std::string::npos) {
-					ode.varNames.push_back(parseVar(line));
-					ode.varValues.push_back(line);
+					try {
+						ode.varNames.push_back(parseVar(line));
+						ode.varValues.push_back(line);
+					} catch (const std::logic_error &e) {
+						std::cerr << "Error: " << e.what() << '\n';
+						return 1;
+					}
 				}
 				else if (line.find("interval") != std::string::npos) {
-					ode.interval.push_back(parseInterval(line));
+					try {
+						ode.interval.push_back(parseInterval(line));
+					} catch (const std::invalid_argument &e) {
+						std::cerr << "Error: " << e.what() << '\n';
+						return 1;
+					}
 				}
 				else if (line.find("time") != std::string::npos) {
-					ode.time = parseTime(line);
+					try {
+						ode.time = parseTime(line);
+					} catch (const std::invalid_argument &e) {
+						std::cerr << "Error: " << e.what() << '\n';
+						return 1;
+					}
 				}
 			}
 			for (int i = 0; i < (int)ode.varNames.size(); i += 1) {
