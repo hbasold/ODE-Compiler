@@ -11,7 +11,7 @@ struct ODE {
 	//Name of a variable
 	std::vector<std::string> varNames;
 	//Expression associated with a variable
-	std::vector<std::string> varValues;
+	std::vector<Expr*> varValues;
 	/*
 	TODO: Add EMIT functionality
 	*/
@@ -23,6 +23,14 @@ struct ODE {
 
 class ODESystem {
 public:
+	~ODESystem() {
+		for (int i = 0; i < (int)ODES.size(); i += 1) {
+			for (auto& e: ODES[i].varValues) {
+				delete e;
+			}
+		}
+	}
+
 	int readODESystem(std::ifstream& inp);
 
 	std::string parseVar(std::string& inp);

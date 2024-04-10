@@ -83,9 +83,11 @@ int ODESystem::readODESystem(std::ifstream& inp) {
 				if (line.find("var") != std::string::npos) {
 					try {
 						ode.varNames.push_back(parseVar(line));
-						ode.varValues.push_back(line);
+						Expr* e = new Expr();
+						e->parse(line);
+						ode.varValues.push_back(e);
 					} catch (const std::logic_error &e) {
-						std::cerr << "Error: " << e.what() << '\n';
+						std::cerr << "Error parsing var: " << e.what() << '\n';
 						return 1;
 					}
 				}
@@ -93,7 +95,7 @@ int ODESystem::readODESystem(std::ifstream& inp) {
 					try {
 						ode.interval.push_back(parseInterval(line));
 					} catch (const std::invalid_argument &e) {
-						std::cerr << "Error: " << e.what() << '\n';
+						std::cerr << "Error parsing interval: " << e.what() << '\n';
 						return 1;
 					}
 				}
@@ -101,13 +103,15 @@ int ODESystem::readODESystem(std::ifstream& inp) {
 					try {
 						ode.time = parseTime(line);
 					} catch (const std::invalid_argument &e) {
-						std::cerr << "Error: " << e.what() << '\n';
+						std::cerr << "Error parsing time: " << e.what() << '\n';
 						return 1;
 					}
 				}
 			}
 			for (int i = 0; i < (int)ode.varNames.size(); i += 1) {
-				std::cout << "<" << ode.varNames[i] << "><" << ode.varValues[i] << "> [" << ode.interval[i].first << ';' << ode.interval[i].second << "]\n";
+				std::cout << "<" << ode.varNames[i] << "><";
+				ode.varValues[i]->print(); 
+				std::cout << "> [" << ode.interval[i].first << ';' << ode.interval[i].second << "]\n";
 			} 
 			std::cout << ode.time << "\n\n";
 			ODES.push_back(ode);
