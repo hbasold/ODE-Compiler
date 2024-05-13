@@ -8,6 +8,13 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
+
+struct var {
+	std::string name;
+	double value;
+	double scalar;
+};
 
 enum class NodeType {
 	NUM,
@@ -37,7 +44,7 @@ struct Node {
 
 class Expr {
 public:
-	Expr() : root(nullptr) {}
+	Expr() : root(nullptr), initCondit(0.0), scalar(0.0){}
 	~Expr() {
 		removeTree(root);
 	}
@@ -45,6 +52,16 @@ public:
 	void print();
 
 	void parse(std::string e);
+
+	double getInit();
+
+	double Evaluate(const std::vector<var> constants,
+					const std::vector<var> vars);
+
+	bool isInteg();
+
+	void setScalar(std::pair<double,double> i);
+	double getScalar();
 
 private:
 	Node* parseTree(std::string e);
@@ -57,8 +74,12 @@ private:
 
 	void printTree(Node* r);
 
+	double EvaluateBU(const std::vector<var>& vars, Node* r);
+	double EvaluateBUScaled(const std::vector<var>& vars, Node* r);
+
 	std::vector<std::string> tokens{};
 	double initCondit;
+	double scalar;
 };
 
 #endif

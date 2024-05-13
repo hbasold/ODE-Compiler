@@ -4,8 +4,11 @@
 #include <cctype>
 #include <stack>
 #include <algorithm>
+#include <unordered_map>
+#include <cstdlib>
 
 #include "include/expression.h"
+#include "include/constants.h"
 
 void Expr::print() {
 	printTree(root);
@@ -13,8 +16,6 @@ void Expr::print() {
 
 void Expr::printTree(Node* r) {
 	if (r == nullptr) return;
-
-	if (r->left != nullptr) printTree(r->left);
 	
 	if (r->op == NodeType::NUM) {
 		std::cout << r->value << " ";
@@ -28,7 +29,9 @@ void Expr::printTree(Node* r) {
 	else if (r->op == NodeType::INTEG) {
 		std::cout << "Integrate: ";
 	}
-	
+
+	if (r->left != nullptr) printTree(r->left);	
+
 	if (r->right != nullptr) printTree(r->right);
 }
 
@@ -42,6 +45,123 @@ void Expr::removeTree(Node* r) {
 	delete r;
 }
 
+double Expr::Evaluate(const std::vector<var> constants,
+											const std::vector<var> vars) {
+  
+  std::vector<var> merged_vars = constants;
+  for (const auto& v : vars) {
+    merged_vars.push_back(v);
+  }	
+
+  double res = 0.0;
+	if (scalar != 0.0) {
+		if (root->op == NodeType::INTEG) {
+			res = EvaluateBUScaled(merged_vars, root->right) * scalar;
+		}
+		else {
+			res = EvaluateBUScaled(merged_vars, root) * scalar;
+		}
+	}
+	else {
+		if (root->op == NodeType::INTEG) {
+			res = EvaluateBU(merged_vars, root->right);
+		}
+		else {
+			res = EvaluateBU(merged_vars, root);
+		}		
+	}
+	return res;
+}
+
+double Expr::EvaluateBU(const std::vector<var>& vars,
+												Node* r) {
+
+	if (r == nullptr) return 0.0;
+
+	if (r->op == NodeType::NUM) {
+		return r->value;
+	}
+	if (r->op == NodeType::VAR) {
+		std::string x = r->name;
+    auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
+        return item.name == x;
+    });
+		if (it != vars.end()) {
+			return it->value;
+		}
+		else {
+			throw std::invalid_argument("Variable not found\n");
+		}
+	} 
+
+	double leftVal = EvaluateBU(vars, r->left);
+	double rightVal = EvaluateBU(vars, r->right);
+
+	switch(r->oper) {
+	case '+':
+		return leftVal + rightVal;
+	case '-':
+		return leftVal - rightVal;
+	case '*':
+		return leftVal * rightVal;
+	case '/':
+		if (rightVal == 0.0) {
+			throw std::invalid_argument("Division by 0 not possible\n");
+		}
+		return leftVal / rightVal;
+	default:
+		throw std::invalid_argument("Operation not found\n");
+	}
+}
+
+double Expr::EvaluateBUScaled(const std::vector<var>& vars,
+															Node* r) {
+
+	if (r == nullptr) {
+		return 0.0;
+	}
+
+	if (r->op == NodeType::NUM) {
+		return r->value * scalar;
+	}
+	if (r->op == NodeType::VAR) {
+		std::string x = r->name;
+		auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
+			return item.name == x;
+		});
+		if (it != vars.end()) {
+			return (it->value / it->scalar);
+		}
+		else {
+			throw std::invalid_argument("Variable not found\n");
+		}
+	} 
+
+	double leftVal = EvaluateBUScaled(vars, r->left);
+	double rightVal = EvaluateBUScaled(vars, r->right);
+
+	switch(r->oper) {
+	case '+':
+		return leftVal + rightVal;
+	case '-':
+		return leftVal - rightVal;
+	case '*':
+		return leftVal * rightVal;
+	case '/':
+		if (rightVal == 0.0) {
+			throw std::invalid_argument("Division by 0 not possible\n");
+		}
+		return leftVal / rightVal;
+	default:
+		throw std::invalid_argument("Operation not found\n");
+	}
+}
+
+bool Expr::isInteg() {
+	if (root->op == NodeType::INTEG) return true;
+	return false;
+}
+
 void Expr::parse(std::string e) {	
 	if (e.substr(0, 5) == "integ") {
 		e = e.substr(6);
@@ -52,14 +172,11 @@ void Expr::parse(std::string e) {
 		e = e.substr(0, x);
 		tokens = tokenise(e);
 
-		for (auto& t: tokens) {
-			std::cout << t << ' ';
-		} std::cout << '\n';
-
 		root = new Node(NodeType::INTEG);
 		root->right = buildTree(tokens);
 	}
 	else {
+		initCondit = std::stod(e);
 		tokens = tokenise(e);
 		root = buildTree(tokens);
 	}
@@ -112,6 +229,23 @@ std::vector<std::string> Expr::prefixToPolish(std::vector<std::string> v) {
 	}
 
 	return polish;
+}
+
+/*
+*		Perform a BU walk and set the scalar for every node
+*/
+
+void Expr::setScalar(std::pair<double,double> i) {
+	scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
+	initCondit *= scalar;
+
+	if (root->op == NodeType::NUM) {
+		root->value *= scalar;
+	}
+}
+
+double Expr::getScalar() {
+	return scalar;
 }
 
 /*
@@ -187,4 +321,8 @@ Node* Expr::buildTree(std::vector<std::string>& tokens) {
 		}
 	}
 	return nodeStack.top();
+}
+
+double Expr::getInit() {
+	return initCondit;
 }
