@@ -5,17 +5,15 @@
 #include <getopt.h>
 
 #include "include/odeSystem.h"
-#include "include/constants.h"
 
 static void
 showHelp(const char *progName)
 {
-  std::cerr << progName << " {-n|-s} {-t [float]} {-d} [filename ...]\n";
+  std::cerr << progName << " {-n|-s} {-d} [filename ...]\n";
   std::cerr <<
 R"HERE(
     -n           No scaling performed.
     -s           Scale variables according to defined FPAALIM in constants.h.
-    -t           time slice for simulation (default 0.01)
     -d           debug mode
 
     One of -n or -s must be specified.
@@ -32,9 +30,8 @@ int main(int argc, char* argv[]) {
   bool noScaling = 0;
   bool debug = 0;
   std::string inpFile;
-  STEPPER = 0.01;
 
-  while ((c = getopt(argc, argv, "snt:di")) != -1) {
+  while ((c = getopt(argc, argv, "sndi")) != -1) {
   	switch(c) {
   	case 's':
   		scaling = 1;
@@ -42,9 +39,6 @@ int main(int argc, char* argv[]) {
   	case 'n':
   		noScaling = 1;
 			break;
-    case 't':
-      STEPPER = std::atof(optarg);;
-      break;
     case 'd':
       debug = 1;
       break;

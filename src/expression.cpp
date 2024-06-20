@@ -5,7 +5,6 @@
 #include <stack>
 #include <algorithm>
 #include <unordered_map>
-#include <cstdlib>
 #include <regex>
 
 #include "include/expression.h"
@@ -262,43 +261,20 @@ double Expr::getScalar() {
 */
 std::vector<std::string> Expr::tokenise(const std::string e) {
 	std::vector<std::string> v;
+	std::regex reg(R"([+-]?[0-9]*[.]?[0-9]+|[+-]?[\w]+|[*\/+\-()]|sin|cos)");
+	auto t_begin = std::sregex_iterator(e.begin(), e.end(), reg);
+	auto t_end = std::sregex_iterator();
 
-	for (int i = 0; i < (int)e.length(); i += 1) {
-		std::string buf;
-		while (std::isspace(e[i])) i += 1;
-
-		if (std::isalpha(e[i])) {
-			while (e[i] != ' ' && e[i] != '(' && e[i] != ')' && i < (int)e.length()) {
-				buf += e[i];
-				i += 1;
-			}
-			v.push_back(buf);
-			i -= 1;
-		}
-		else if (e[i] == '-' && std::isalpha(e[i+1])) {
+	for (std::sregex_iterator i = t_begin; i != t_end; i++) {
+		std::string token = (*i).str();
+		if (token[0] == '-' && (std::isalpha(token[1]) || std::isdigit(token[1]))) {
 			v.push_back("-1");
 			v.push_back("*");
-			i += 1;
-			while (e[i] != ' ' && e[i] != '(' && e[i] != ')' && i < (int)e.length()) {
-				buf += e[i];
-				i += 1;
-			}
-			v.push_back(buf);
-			i -= 1;
+			token = token.substr(1);
 		}
-		else if (std::isdigit(e[i]) || (e[i] == '-' && std::isdigit(e[i+1]))) {
-			while (e[i] != ' ' && e[i] != '(' && e[i] != ')' && i < (int)e.length()) {
-				buf += e[i];
-				i += 1;
-			}
-			v.push_back(buf);
-			i -= 1;
-		}
-		else {
-			buf += e[i];
-			v.push_back(buf);
-		}
+		v.push_back(token);
 	} 
+	
 	v = prefixToPolish(v);
 	return v;
 }

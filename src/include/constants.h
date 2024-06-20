@@ -2,6 +2,6 @@
 #define CONSTH
 
 constexpr double FPAALIM = 3.3;
-extern double STEPPER;
+constexpr double STEPPER = 0.01;
 
 #endif

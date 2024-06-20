@@ -3,13 +3,10 @@
 #include <string>
 #include <tuple>
 #include <fstream>
-#include <sstream>
 #include <utility>
 #include <stdexcept>
 #include <unordered_map>
 #include <regex>
-
-#include <boost/numeric/odeint.hpp>
 
 #include "include/odeSystem.h"
 
