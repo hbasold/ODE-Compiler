@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <cstdlib>
+#include <regex>
 
 #include "include/expression.h"
 #include "include/constants.h"
@@ -173,16 +174,15 @@ bool Expr::isInteg() {
 
 void Expr::parse(std::string e) {	
 	if (e.substr(0, 5) == "integ") {
-		e = e.substr(6);
-		e.pop_back();
-		size_t x = e.find(',');
-		initCondit = std::stod(e.substr(x + 1));
+		std::regex reg(R"(\s*integ\(([^,]+)\s*,\s*([+-]?[0-9]*[.]?[0-9]+))");
+		std::smatch s;
+		if (regex_search(e, s, reg) && s.size() == 3) {
+			tokens = tokenise(s.str(1));
+			initCondit = std::stod(s.str(2));
 
-		e = e.substr(0, x);
-		tokens = tokenise(e);
-
-		root = new Node(NodeType::INTEG);
-		root->right = buildTree(tokens);
+			root = new Node(NodeType::INTEG);
+			root->right = buildTree(tokens);
+		}
 	}
 	else {
 		initCondit = std::stod(e);
@@ -262,6 +262,7 @@ double Expr::getScalar() {
 */
 std::vector<std::string> Expr::tokenise(const std::string e) {
 	std::vector<std::string> v;
+
 	for (int i = 0; i < (int)e.length(); i += 1) {
 		std::string buf;
 		while (std::isspace(e[i])) i += 1;

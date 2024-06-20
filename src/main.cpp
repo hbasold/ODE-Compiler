@@ -1,18 +1,22 @@
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 #include <getopt.h>
 
 #include "include/odeSystem.h"
+#include "include/constants.h"
 
 static void
 showHelp(const char *progName)
 {
-  std::cerr << progName << " {-n|-s} [filename ...]\n";
+  std::cerr << progName << " {-n|-s} {-t [float]} {-d} [filename ...]\n";
   std::cerr <<
 R"HERE(
     -n           No scaling performed.
     -s           Scale variables according to defined FPAALIM in constants.h.
+    -t           time slice for simulation (default 0.01)
+    -d           debug mode
 
     One of -n or -s must be specified.
     filename must be one file.
@@ -24,11 +28,13 @@ int main(int argc, char* argv[]) {
   const char *progName = argv[0];
   char c;
 
-  bool noScaling = 0;
   bool scaling = 0;
+  bool noScaling = 0;
+  bool debug = 0;
   std::string inpFile;
+  STEPPER = 0.01;
 
-  while ((c = getopt(argc, argv, "sni:")) != -1) {
+  while ((c = getopt(argc, argv, "snt:di")) != -1) {
   	switch(c) {
   	case 's':
   		scaling = 1;
@@ -36,6 +42,19 @@ int main(int argc, char* argv[]) {
   	case 'n':
   		noScaling = 1;
 			break;
+    case 't':
+      STEPPER = std::atof(optarg);;
+      break;
+    case 'd':
+      debug = 1;
+      break;
+    case '?':
+      if (c == 't') {
+        std::cerr << "Time option requires an argument\n";
+      }
+      else {
+        std::cerr << "Unkown option " << c << '\n';
+      }
 	  case 'h':
     default:
       showHelp(progName);
@@ -50,10 +69,12 @@ int main(int argc, char* argv[]) {
 
   if (noScaling && scaling) {
   	std::cerr << "Error: can't use both scaling and no scaling\n";
+    showHelp(progName);
   	return -1;
   }
   else if (!noScaling && !scaling) {
   	std::cerr << "Error: has to use either scaling or no scaling\n";
+    showHelp(progName);
   	return -1;
   }
 	std::ifstream file(inpFile);
@@ -64,7 +85,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	ODESystem a;
-	a.readODESystem(file, scaling);
+	a.readODESystem(file, scaling, debug);
 	a.simulate();
 
 	file.close();

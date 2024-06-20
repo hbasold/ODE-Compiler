@@ -14,94 +14,40 @@
 #include "include/odeSystem.h"
 
 std::string ODESystem::parseVar(std::string &inp) {
-	size_t pos = inp.find("var");
-	if (pos == std::string::npos) {
-		throw std::invalid_argument("Variable not found");
+	std::regex var_r(R"(^\s*var\s*([^\s]+)\s*=\s*([^;]+)\s*;)");
+	std::smatch s;
+	if (std::regex_search(inp, s, var_r) && s.size() == 3) {
+		std::string ret = s.str(1);
+		inp = s.str(2);
+		return ret;
 	}
-
-	inp = inp.substr(pos + 4);	//remove 'var '
-
-	int i = 0;
-	std::string varName;
-	for (char c : inp) {
-		if (c == ' ') break;
-		varName += c;
-		i += 1;
-	}
-	inp = inp.substr(i+3);	//remove ' = '
-	inp.pop_back();	//delete final ';'
-
-	return varName;
+	throw std::invalid_argument("Failed to parse variable\n");
 } 
 
 std::pair<double, double> ODESystem::parseInterval(std::string &inp) {
-	size_t start = inp.find('[');
-	size_t comma = inp.find(',');
-	size_t end = inp.find(']');
-
-	if (start == std::string::npos || comma == std::string::npos || end == std::string::npos) {
-		throw std::invalid_argument("Interval not correctly formatted");
-	}
-
-	std::string buf1 = inp.substr(start + 1, comma - start - 1);
-	std::string buf2 = inp.substr(comma + 1, end - comma - 1);
-	std::pair<double, double> res;
-	try {
-		res = std::make_pair(std::stod(buf1), std::stod(buf2));
-	} catch(std::invalid_argument &e) {
-		throw std::invalid_argument("Failed to parse interval");
-	}
-
-	return res;
+	std::regex interval_r(R"(^\s*interval\s*([^\s]+)\s*=\s*\[\s*([+-]?[0-9]*[.]?[0-9]+)\s*,\s*([+-]?[0-9]*\.?[0-9]+)\s*];)");
+	std::smatch s;
+	if (std::regex_search(inp, s, interval_r) && s.size() == 4) {
+		return std::make_pair(std::stod(s[2]), std::stod(s[3]));
+	}	
+	throw std::invalid_argument("Failed to parse interval");
 }
 
 double ODESystem::parseTime(std::string &inp) {
-	size_t pos = inp.find("time");
-	if (pos == std::string::npos) {
-		throw std::invalid_argument("Time not found");
+	std::regex time_r(R"(^\s*time\s*([0-9]*\.?[0-9]+)\s*;)");
+	std::smatch s;
+	if (std::regex_search(inp, s, time_r) && s.size() == 2) {
+		return std::stod((std::string)s[1]);
 	}
-
-	inp = inp.substr(pos + 5);
-
-	std::string buf;
-	for (char c : inp) {
-		if (c == ';') break;
-		buf += c;
-	}
-
-	double res;
-	try {
-		res = std::stod(buf);
-	} catch (std::invalid_argument &e) {
-		throw std::invalid_argument("Failed to parse time");
-	}
-
-	return res;
+	throw std::invalid_argument("Failed to parse time");
 }
 
 void ODESystem::parseEmit(std::string &inp) {
-	size_t pos = inp.find("emit");
-	if (pos == std::string::npos) {
-		throw std::invalid_argument("Emit not found");
+	std::regex emit_r(R"(^\s*emit\s*([^\s]+)\s*as\s*([^\s]+)\s*;)");
+	std::smatch s; 
+	if (std::regex_search(inp, s, emit_r) && s.size() == 3) {
+		global[s[2]] = std::make_tuple(s[1], 0.0, 0.0);
 	}
-
-	inp = inp.substr(pos + 5);
-	int i = 0;
-	std::string val;
-	for (char c : inp) {
-		if (c == ' ') break;
-		val += c;
-		i += 1;
-	}	//parse the value variable
-
-	inp = inp.substr(i + 4); 	//remove ' as '
-	std::string key;
-	for (char c : inp) {
-		if (c == ';') break;
-		key += c;
-	}
-
-	global[key] = std::make_tuple(val, 0.0, 0.0);
 }
 
 void ODESystem::setScalars(ODE o) {
@@ -110,7 +56,7 @@ void ODESystem::setScalars(ODE o) {
 	}	
 }	
 
-int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
+int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d) {
 	std::string line;
 
 	std::regex system_r(R"(^\s*system\s+)");
@@ -125,7 +71,8 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 			while(std::getline(inp, line) && line != "}") {
 				if (std::regex_search(line, var_r)) {
 					try {
-						ode.varNames.push_back(parseVar(line));
+						std::string x = parseVar(line);
+						ode.varNames.push_back(x);
 						Expr* e = new Expr();
 						e->parse(line);
 						ode.varValues.push_back(e);
@@ -163,17 +110,14 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 			if (scaled) {
 				setScalars(ode);
 			}
-			
-			for (size_t i = 0; i < ode.interval.size(); i += 1) {
-				std::cerr << "Var " << ode.varNames[i] << ' ' << ode.varValues[i]->getScalar() << '\n';
+			if (d) {
+				for (size_t i = 0; i < ode.varNames.size(); i += 1) {
+					std::cerr << ode.varNames[i] << '=';
+					ode.varValues[i]->print(); 
+					std::cerr << " [" << ode.interval[i].first << ";" << ode.interval[i].second << "]\n";
+				}
+				std::cerr << ode.time << '\n';
 			}
-			//Debug print the read ODE
-			for (int i = 0; i < (int)ode.varNames.size(); i += 1) {
-				std::cout << "<" << ode.varNames[i] << "><";
-				ode.varValues[i]->print(); 
-				std::cout << "> [" << ode.interval[i].first << ';' << ode.interval[i].second << "]\n";
-			} 
-			std::cout << ode.time << "\n\n";
 			ODES.push_back(ode);
 		}
 	}
@@ -195,11 +139,11 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
   	}
     it.second = std::make_tuple(varName, initialValue, scalar);
   }
-
-	std::cout << "\nGlobal variables\n";
-	for (const auto& it : global) {
-		std::cout << it.first << ' ' << std::get<0>(it.second) << ' ' << std::get<1>(it.second) << ' ' << std::get<2>(it.second) << '\n';
-	} std::cout << '\n';
+  if (d) {
+  	for (auto& it : global) {
+  		std::cerr << std::get<0>(it.second) << " emitted as " << it.first << " with " << std::get<1>(it.second) << '\n';
+  	}
+  }
 
 	return 0;	
 }

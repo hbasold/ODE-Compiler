@@ -29,7 +29,7 @@ public:
 		}
 	}
 
-	int readODESystem(std::ifstream& inp, const bool scaled);
+	int readODESystem(std::ifstream& inp, const bool scaled, const bool d);
 
 	std::string parseVar(std::string& inp);
 	std::pair<double, double> parseInterval(std::string &inp);
