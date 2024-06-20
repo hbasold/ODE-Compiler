@@ -7,6 +7,7 @@
 #include <utility>
 #include <stdexcept>
 #include <unordered_map>
+#include <regex>
 
 #include <boost/numeric/odeint.hpp>
 
@@ -100,7 +101,7 @@ void ODESystem::parseEmit(std::string &inp) {
 		key += c;
 	}
 
-	global[key] = val;
+	global[key] = std::make_tuple(val, 0.0, 0.0);
 }
 
 void ODESystem::setScalars(ODE o) {
@@ -112,11 +113,17 @@ void ODESystem::setScalars(ODE o) {
 int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 	std::string line;
 
+	std::regex system_r(R"(^\s*system\s+)");
+	std::regex var_r(R"(^\s*var\s+)");
+	std::regex interval_r(R"(^\s*interval\s+)");
+	std::regex time_r(R"(^\s*time\s+)");
+	std::regex emit_r(R"(^\s*emit\s+)");
+
 	while (std::getline(inp, line)) {
-		if (line.find("system") != std::string::npos) {
+		if (std::regex_search(line, system_r)) {
 			ODE ode;
 			while(std::getline(inp, line) && line != "}") {
-				if (line.find("var") != std::string::npos) {
+				if (std::regex_search(line, var_r)) {
 					try {
 						ode.varNames.push_back(parseVar(line));
 						Expr* e = new Expr();
@@ -127,7 +134,7 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 						return 1;
 					}
 				}
-				else if (line.find("interval") != std::string::npos) {
+				else if (std::regex_search(line, interval_r)) {
 					try {
 						ode.interval.push_back(parseInterval(line));
 					} catch (const std::invalid_argument &e) {
@@ -135,7 +142,7 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 						return 1;
 					}
 				}
-				else if (line.find("time") != std::string::npos) {
+				else if (std::regex_search(line, time_r)) {
 					try {
 						ode.time = parseTime(line);
 					} catch (const std::invalid_argument &e) {
@@ -143,7 +150,7 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 						return 1;
 					}
 				}
-				else if (line.find("emit") != std::string::npos) {
+				else if (std::regex_search(line, emit_r)) {
 					try {
 						parseEmit(line);
 					} catch(const std::invalid_argument &e) {
@@ -171,139 +178,28 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled) {
 		}
 	}
 
+  for (auto& it : global) {
+    std::string varName = std::get<0>(it.second);
+    double initialValue = 0.0;
+    double scalar = 0.0;
+
+    // Find the initial value in the ODES
+    for (const auto& ode : ODES) {
+      auto itVar = std::find(ode.varNames.begin(), ode.varNames.end(), varName);
+      if (itVar != ode.varNames.end()) {
+        size_t index = std::distance(ode.varNames.begin(), itVar);
+        initialValue = ode.varValues[index]->getInit();
+        scalar = ode.varValues[index]->getScalar();
+        break;
+    	}
+  	}
+    it.second = std::make_tuple(varName, initialValue, scalar);
+  }
+
+	std::cout << "\nGlobal variables\n";
 	for (const auto& it : global) {
-		std::cout << it.first << ' ' << it.second << '\n';
-	}
+		std::cout << it.first << ' ' << std::get<0>(it.second) << ' ' << std::get<1>(it.second) << ' ' << std::get<2>(it.second) << '\n';
+	} std::cout << '\n';
 
 	return 0;	
-}
-
-std::vector<var> ODESystem::extractConstants(const ODE& ode) const {
-	std::vector<var> constants;
-	for (size_t i = 0; i < ode.varNames.size(); ++i) {
-	  if (ode.varNames[i] != "time" && ode.interval[i].first == ode.interval[i].second) {
-	    var v;
-	    v.name = ode.varNames[i];
-	    v.value = ode.varValues[i]->getInit();
-	    v.scalar = ode.varValues[i]->getScalar();
-	  	constants.push_back(v);
-	  }
-	}
-	return constants;
-}
-
-std::vector<var> ODESystem::extractVariables(const ODE& ode) const {
-  std::vector<var> variables;
-  for (size_t i = 0; i < ode.varNames.size(); ++i) {
-    if (ode.varNames[i] != "time" && ode.interval[i].first != ode.interval[i].second) {
-    	var v;
-    	v.name = ode.varNames[i];
-    	v.value = ode.varValues[i]->getInit();
-    	v.scalar = ode.varValues[i]->getScalar();
-      variables.push_back(v);
-    }
-  }
-  return variables;
-}
-
-std::vector<Expr*> extractVariablesInteg(const ODE& ode) {
-  std::vector<Expr*> variables;
-  for (size_t i = 0; i < ode.varValues.size(); ++i) {
-    if (ode.varValues[i]->isInteg()) {
-      variables.push_back(ode.varValues[i]);
-    }
-  }
-  return variables;
-}
-
-
-/*
-*	Simulate the system of ODEs using the odeint library
-*/
-
-class IntegrationObserver {
-public:
-    IntegrationObserver(std::ofstream& outfile) : output(outfile) {}
-
-    template<typename State>
-    void operator()(const State& x, double t) const {
-        output << t << ",";
-        for (size_t i = 0; i < x.size(); ++i) {
-            output << x[i] << ",";
-        }
-        output << std::endl;
-    }
-
-private:
-    std::ofstream& output;
-};
-
-struct ODEs {
-  const std::vector<Expr*>& expressions;
-  const std::vector<var>& constants;
-  std::vector<var>& variables;
-
-  ODEs(const std::vector<Expr*>& exprs, 
-    const std::vector<var>& consts,
-    std::vector<var>& vars)
-    : expressions(exprs), constants(consts), variables(vars) {}
-
-  void operator()(const std::vector<double>& x, std::vector<double>& dxdt, const double /* t */) const {
-		for (size_t i = 0; i < x.size(); i += 1) {
-    	variables[i].value = x[i];
-    } 
-    // Evaluate each expression in the system of ODEs
-    for (size_t i = 0; i < expressions.size(); ++i) {
-      // Evaluate the expression and assign the result to the corresponding dxdt element
-      dxdt[i] = expressions[i]->Evaluate(constants, variables);
-    }
-  }
-};
-
-void ODESystem::simulate() {
-	using namespace boost::numeric::odeint;
-
-	//for every ODE
-	for (auto &it : ODES) {
-		auto constants = extractConstants(it);
-		auto vars = extractVariables(it);
-
-		auto varExpr = extractVariablesInteg(it);
-
-		std::vector<double> x(vars.size());
-
-		size_t id = 0;
-		for (const auto &i : varExpr) {
-			x[id++] = i->getInit();
-		}
-
-		for (const auto& i : vars) {
-			std::cout << i.name << ' ' << i.value << ' ' << i.scalar << '\n';
-		}
-
-		for (size_t i = 0; i < x.size(); i += 1) {
-			std::cout << x[i] << ' ';
-		} std::cout << '\n';
-
-		auto stepper = runge_kutta4<std::vector<double>>();
-
-		std::ofstream outputFile("res/outp.csv");
-		if (!outputFile.is_open()) {
-			std::cerr << "Can't open outputfile\n";
-			return;
-		}
-
-		auto observer = IntegrationObserver(outputFile);
-		outputFile << "Time,x,y,z,\n";
-
-		integrate_const(stepper, ODEs(varExpr, constants, vars), x, 0.0, it.time, 0.01, observer);
-
-		outputFile.close();
-
-    // Output the results
-    size_t idx = 0;
-    for (const auto& entry : vars) {
-        std::cout << entry.name << " = " << x[idx++] << std::endl;
-    }
-	}
 }

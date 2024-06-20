@@ -1,0 +1,11 @@
+system {
+    var alpha = 5;
+    var x = integ(y * alpha, 0);
+    var y = integ(x / alpha, 10);
+    emit x as x;
+    emit y as y;
+    interval alpha = [5, 5];
+    interval x = [-10, 10];
+    interval y = [-10, 10];
+    time 10;
+}

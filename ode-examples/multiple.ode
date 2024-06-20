@@ -1,13 +1,13 @@
 system {
-    var x = integ(x, 1.0);
-    emit x as x;
+    var x = integ(x1, 1.2);
+    emit x as y1;
     interval x = [0, 10];
     time 10;
 }
 
 system {
-    var y = x + 1;
-    emit y as y;
-    interval y = [1, 11];
+    var y = integ(y1 + 5, 1.0);
+    emit y as x1;
+    interval y = [0, 10];
     time 10;
 }

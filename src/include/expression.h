@@ -16,6 +16,13 @@ struct var {
 	double scalar;
 };
 
+struct global_var {
+	std::string local_name;
+	std::string name;
+	double value;
+	double scalar;
+};
+
 enum class NodeType {
 	NUM,
 	VAR,
@@ -56,7 +63,8 @@ public:
 	double getInit();
 
 	double Evaluate(const std::vector<var> constants,
-					const std::vector<var> vars);
+					const std::vector<var> vars,
+					const std::vector<global_var> global);
 
 	bool isInteg();
 

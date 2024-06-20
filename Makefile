@@ -2,7 +2,7 @@ CC = g++
 
 CompileParms = -c -Wall -std=c++17 -O2
 
-OBJS = main.o odeSystem.o expression.o
+OBJS = main.o odeSystem.o digitalSimulator.o expression.o
 
 Opdr: $(OBJS)
 	$(CC) $(OBJS) -o compiler
@@ -14,7 +14,10 @@ expression.o: src/expression.cpp src/include/expression.h
 	$(CC) $(CompileParms) src/expression.cpp 
 
 odeSystem.o: src/odeSystem.cpp src/include/odeSystem.h
-	$(CC) $(CompileParms)  src/odeSystem.cpp
+	$(CC) $(CompileParms) src/odeSystem.cpp
+
+digitalSimulator.o: src/digitalSimulator.cpp src/include/odeSystem.h
+	$(CC) $(CompileParms) src/digitalSimulator.cpp
 
 main.o: src/main.cpp src/include/odeSystem.h
-	$(CC) $(CompileParms)  src/main.cpp
+	$(CC) $(CompileParms) src/main.cpp

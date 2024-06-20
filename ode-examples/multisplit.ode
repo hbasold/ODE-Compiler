@@ -1,4 +1,3 @@
-
 system {
     var x = integ(x, 1);
     var y = integ(x - z, 1);

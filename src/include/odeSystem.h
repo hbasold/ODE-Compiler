@@ -41,9 +41,10 @@ public:
 
 	std::vector<var> extractConstants(const ODE& ode) const;
 	std::vector<var> extractVariables(const ODE& ode) const;
+	std::vector<global_var> extractGlobals() const;
 private:
 	std::vector<ODE> ODES;
-	std::unordered_map<std::string, std::string> global;
+	std::unordered_map<std::string, std::tuple<std::string, double, double>> global;
 };
 
 #endif

@@ -46,12 +46,21 @@ void Expr::removeTree(Node* r) {
 }
 
 double Expr::Evaluate(const std::vector<var> constants,
-											const std::vector<var> vars) {
+											const std::vector<var> vars,
+											const std::vector<global_var> global) {
   
   std::vector<var> merged_vars = constants;
   for (const auto& v : vars) {
     merged_vars.push_back(v);
   }	
+
+  for (const auto& g : global) {
+  	var v;
+  	v.name = g.name;
+  	v.value = g.value;
+  	v.scalar = g.scalar;
+  	merged_vars.push_back(v);
+  }
 
   double res = 0.0;
 	if (scalar != 0.0) {
