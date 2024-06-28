@@ -130,18 +130,23 @@ void ODESystem::simulate() {
     expressionSets.push_back(varExpr);
     constantSets.push_back(constants);
   }
-
-  std::ofstream outputFile("res/outp_.csv");
+  std::string outputFileName = "res/" + systemName + ".csv";
+  std::ofstream outputFile(outputFileName);
   if (!outputFile.is_open()) {
     std::cerr << "Can't open outputfile\n";
     return;
-  }
-  outputFile << "t,";
-  for (const auto &vars : variableSets) {
-  	for (const auto &v : vars) {
-  		outputFile << v.name << ',';
-  	}
-  } outputFile << '\n';
+	}
+	// outputFile << "t,";
+	// for (const auto &vars : variableSets) {
+	//  	for (const auto &v : vars) {
+	//  		outputFile << v.name << ',';
+	// 	}
+	//} outputFile << '\n';
+
+	outputFile << "time,";
+	for (const auto& g : global) {
+		outputFile << g.name << ',';
+	} outputFile << '\n';
 
   auto stepper = runge_kutta4<std::vector<double>>();
 
@@ -149,19 +154,20 @@ void ODESystem::simulate() {
   	outputFile << time << ',';
     for (size_t i = 0; i < ODES.size(); ++i) {
       integrate_const(stepper, ODEs(expressionSets[i], constantSets[i], variableSets[i], global), stateVectors[i], time, time + STEPPER, STEPPER);
-    	//update global variables here if applicable
-      for (const auto &v : variableSets[i]) {
+    	
+    	for (const auto &v : variableSets[i]) {
       	for (auto& g : global) {
       		if (g.local_name == v.name) {
       			g.value = v.value;
+      			outputFile << g.value << ',';
       		}
       	}
       }
-      //write to outputfile
-      for (size_t j = 0; j < stateVectors[i].size(); j += 1) {
-      	outputFile << stateVectors[i][j] << ',';
-      } 
+      // for (size_t j = 0; j < stateVectors[i].size(); j += 1) {
+      // 	outputFile << stateVectors[i][j] << ',';
+      // } 
     }
     outputFile << '\n';
   }
+  outputFile.close();
 }

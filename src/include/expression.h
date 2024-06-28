@@ -32,6 +32,7 @@ enum class NodeType {
 };
 
 struct Node {
+	int num;
 	NodeType op;
 
 	double value;					//if the node is a num
@@ -42,11 +43,11 @@ struct Node {
 	Node* right;
 
 	//Constructors for the various node types
-	Node(NodeType o) : op(o), left(nullptr), right(nullptr) {}
-	Node(char c) : op(NodeType::OP), oper(c), left(nullptr), right(nullptr) {}
-	Node(NodeType o, char c) : op(o), oper(c), left(nullptr), right(nullptr) {}
-	Node(double v) : op(NodeType::NUM), value(v), left(nullptr), right(nullptr) {}
-	Node(std::string n) : op(NodeType::VAR), name(n), left(nullptr), right(nullptr) {}
+	Node(NodeType o, int n) : num(n), op(o), left(nullptr), right(nullptr) {}
+	Node(char c, int n) : num(n), op(NodeType::OP), oper(c), left(nullptr), right(nullptr) {}
+	Node(NodeType o, char c, int n) : num(n), op(o), oper(c), left(nullptr), right(nullptr) {}
+	Node(double v, int n) : num(n), op(NodeType::NUM), value(v), left(nullptr), right(nullptr) {}
+	Node(std::string n, int c) : num(c), op(NodeType::VAR), name(n), left(nullptr), right(nullptr) {}
 };
 
 class Expr {
@@ -70,6 +71,11 @@ public:
 
 	void setScalar(std::pair<double,double> i);
 	double getScalar();
+	void FPAAPrintConfig(std::ofstream &of, 
+						 const int c, const std::vector<var> constants,
+						 const std::vector<var> vars,
+						 const std::vector<global_var> global,
+						 const std::string exprName);
 
 private:
 	Node* parseTree(std::string e);
@@ -84,6 +90,21 @@ private:
 
 	double EvaluateBU(const std::vector<var>& vars, Node* r);
 	double EvaluateBUScaled(const std::vector<var>& vars, Node* r);
+
+	std::unordered_map<std::string, std::string> FPAASetInputs(std::ofstream &of, 
+										 																				 const int c, 
+										 																				 const std::vector<var> constants);
+	void FPAASetOutputs(std::ofstream &of,
+											const int c,
+											const std::vector<global_var> global,
+											const std::string exprName);
+	void FPAASetCABs(std::ofstream &of, 
+									 Node* r,
+									 const std::unordered_map<std::string, std::string> inputMap);
+	void returnLeaves(Node* r, std::vector<Node*> &inp);
+	void FPAAPrintInputVariables(std::ofstream &of, 
+															 Node* r, 
+															 const std::unordered_map<std::string, std::string> inputMap);
 
 	std::vector<std::string> tokens{};
 	double initCondit;

@@ -42,9 +42,15 @@ public:
 	std::vector<var> extractConstants(const ODE& ode) const;
 	std::vector<var> extractVariables(const ODE& ode) const;
 	std::vector<global_var> extractGlobals() const;
+
+	void parseFPAAOutput();
+	bool setInpFileName(const std::string i);
+	std::string getInpFileName();
+
 private:
 	std::vector<ODE> ODES;
 	std::unordered_map<std::string, std::tuple<std::string, double, double>> global;
+	std::string systemName;
 };
 
 #endif

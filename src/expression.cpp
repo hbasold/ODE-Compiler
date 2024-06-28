@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <unordered_map>
 #include <regex>
+#include <cmath>
+#include <fstream>
 
 #include "include/expression.h"
 #include "include/constants.h"
@@ -85,12 +87,15 @@ double Expr::Evaluate(const std::vector<var> constants,
 double Expr::EvaluateBU(const std::vector<var>& vars,
 												Node* r) {
 
-	if (r == nullptr) return 0.0;
-
-	if (r->op == NodeType::NUM) {
+	double leftVal;
+	double rightVal;
+	if (r == nullptr) {
+		return 0.0;
+	}
+	else if (r->op == NodeType::NUM) {
 		return r->value;
 	}
-	if (r->op == NodeType::VAR) {
+	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
     auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
         return item.name == x;
@@ -101,10 +106,18 @@ double Expr::EvaluateBU(const std::vector<var>& vars,
 		else {
 			throw std::invalid_argument("Variable not found\n");
 		}
+	}
+	else if (r->op == NodeType::WAVE && r->oper == 's') {
+		rightVal = EvaluateBU(vars, r->right);
+		return std::sin(rightVal);
 	} 
+	else if (r->op == NodeType::WAVE && r->oper == 'c') {
+		rightVal = EvaluateBU(vars, r->right);
+		return std::cos(rightVal);
+	}
 
-	double leftVal = EvaluateBU(vars, r->left);
-	double rightVal = EvaluateBU(vars, r->right);
+	leftVal = EvaluateBU(vars, r->left);
+	rightVal = EvaluateBU(vars, r->right);
 
 	switch(r->oper) {
 	case '+':
@@ -125,15 +138,16 @@ double Expr::EvaluateBU(const std::vector<var>& vars,
 
 double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 															Node* r) {
+	double leftVal;
+	double rightVal;
 
 	if (r == nullptr) {
 		return 0.0;
 	}
-
-	if (r->op == NodeType::NUM) {
+	else if (r->op == NodeType::NUM) {
 		return r->value * scalar;
 	}
-	if (r->op == NodeType::VAR) {
+	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
 		auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
 			return item.name == x;
@@ -145,9 +159,17 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 			throw std::invalid_argument("Variable not found\n");
 		}
 	} 
+	else if (r->op == NodeType::WAVE && r->oper == 's') {
+		rightVal = EvaluateBU(vars, r->right);
+		return std::sin(rightVal);
+	} 
+	else if (r->op == NodeType::WAVE && r->oper == 'c') {
+		rightVal = EvaluateBU(vars, r->right);
+		return std::cos(rightVal);
+	}
 
-	double leftVal = EvaluateBUScaled(vars, r->left);
-	double rightVal = EvaluateBUScaled(vars, r->right);
+	leftVal = EvaluateBUScaled(vars, r->left);
+	rightVal = EvaluateBUScaled(vars, r->right);
 
 	switch(r->oper) {
 	case '+':
@@ -166,6 +188,160 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 	}
 }
 
+void Expr::returnLeaves(Node* r, std::vector<Node*> &inp) {
+	if (r == nullptr) return;
+	if (r->op == NodeType::VAR || r->op == NodeType::NUM) {
+		inp.push_back(r);
+		return;
+	}
+	returnLeaves(r->left, inp);
+	returnLeaves(r->right, inp);
+}
+
+void Expr::FPAAPrintConfig(std::ofstream &of, const int c,
+											const std::vector<var> constants,
+											const std::vector<var> vars,
+											const std::vector<global_var> global,
+											const std::string exprName) {
+	auto inputMap = FPAASetInputs(of, c, constants);
+	
+	FPAASetCABs(of, root, inputMap);
+	FPAASetOutputs(of, c, global, exprName);
+	return;
+}
+
+std::unordered_map<std::string, std::string> Expr::FPAASetInputs(std::ofstream &of, 
+																																const int c, 
+																																const std::vector<var> constants) {
+	std::vector<Node*> inputs;
+	std::unordered_map<std::string, std::string> inputMap;
+
+	returnLeaves(root, inputs);
+
+	for (size_t i = 0; i < inputs.size(); i += 1) {
+		std::string inputValue;
+		std::string mapValue;
+
+		auto j = std::find_if(constants.begin(), constants.end(), [&inputs, i](const var& a) {
+			return a.name == inputs[i]->name;
+		});
+		if (j != constants.end()) {
+			inputValue = std::to_string(j->value);
+			mapValue = j->name;
+		}
+		else if (inputs[i]->op == NodeType::NUM) {
+			inputValue = std::to_string(inputs[i]->value);
+			mapValue = inputValue;
+		}
+		else {
+			inputValue = inputs[i]->name;
+			mapValue = inputValue;
+		}
+		std::string tmp = "\tFPAA" + std::to_string(c) + "_inp" + std::to_string(i);
+		of << tmp << " = " << inputValue << ";\n";
+		inputMap[mapValue] = tmp.substr(1);
+	}
+	return inputMap;
+}
+
+void Expr::FPAAPrintInputVariables(std::ofstream &of, Node* r, const std::unordered_map<std::string, std::string> inputMap) {
+		if (r->op == NodeType::VAR) {
+		auto tmp = inputMap.find(r->name);
+		if (tmp != inputMap.end()) {
+			of << tmp->second << ";\n";
+		}
+		else {
+			throw std::invalid_argument("Variable not found\n");
+		}
+	}
+	else if (r->op == NodeType::NUM) {
+		auto tmp = inputMap.find(std::to_string(r->value));
+		if (tmp != inputMap.end()) {
+			of << tmp->second << ";\n";
+		}
+		else {
+			throw std::invalid_argument("Number not found\n");
+		}
+	}
+	else {
+		of << "CAB" << r->num << ";\n";
+	}
+}
+
+void Expr::FPAASetCABs(std::ofstream &of, Node* r, const std::unordered_map<std::string, std::string> inputMap) {
+	if (r == nullptr || r->op == NodeType::NUM || r->op == NodeType::VAR) return;
+
+	FPAASetCABs(of, r->left, inputMap);
+	FPAASetCABs(of, r->right, inputMap);
+
+	of << "\tCAB" << r->num << " {\n";
+	switch(r->op) {
+	case NodeType::INTEG:
+		of << "\t\top = integ;\n\t\tinp0 = ";
+		FPAAPrintInputVariables(of, r->right, inputMap);
+		break;
+	case NodeType::WAVE:
+		switch(r->oper) {
+		case 's':
+			of << "\t\top = sin;\n";
+		case 'c':
+			of << "\t\top = cos;\n";
+		default:
+			throw std::invalid_argument("Invalid wave function\n");
+		}
+		of << "\t\tinp0 = ";
+		FPAAPrintInputVariables(of, r->right, inputMap);
+		break;
+	case NodeType::OP:
+		switch(r->oper) {
+		case '+':
+			of << "\t\top = sum;\n";
+			break;
+		case '-':
+			of << "\t\top = min;\n";
+			break;
+		case '*':
+			of << "\t\top = mul;\n";
+			break;
+		case '/':
+			of << "\t\top = div;\n";
+			break;
+		default:
+			throw std::invalid_argument("Invalid operation\n");
+		}
+		of << "\t\tinp0 = ";
+		FPAAPrintInputVariables(of, r->left, inputMap);
+		of << "\t\tinp1 = ";
+		FPAAPrintInputVariables(of, r->right, inputMap);
+		break;
+	default:
+		throw std::invalid_argument("Invalid node type\n");
+	}
+
+	of << "\t\tscale = " << scalar << ";\n\t};\n";
+}
+
+void Expr::FPAASetOutputs(std::ofstream &of,
+													const int c,
+													const std::vector<global_var> global,
+													const std::string exprName) {
+	of << "\tFPAA" << c << "_outp0 = " << exprName << ";\n"; 
+
+	auto i = global.begin();
+	while (1) {
+		auto n = std::find_if(i, global.end(), [&exprName](const global_var& a) {
+			return a.local_name == exprName;
+		});
+		if (n != global.end()) {
+			of << "\tFPAA" << c << "_outp1 = " << n->name << ";\n";
+			i = std::next(n);
+		}
+		if (n == global.end()) {
+			break;
+		}
+	}
+}
+
 bool Expr::isInteg() {
 	if (root->op == NodeType::INTEG) return true;
 	return false;
@@ -179,7 +355,7 @@ void Expr::parse(std::string e) {
 			tokens = tokenise(s.str(1));
 			initCondit = std::stod(s.str(2));
 
-			root = new Node(NodeType::INTEG);
+			root = new Node(NodeType::INTEG, 0);
 			root->right = buildTree(tokens);
 		}
 	}
@@ -261,7 +437,7 @@ double Expr::getScalar() {
 */
 std::vector<std::string> Expr::tokenise(const std::string e) {
 	std::vector<std::string> v;
-	std::regex reg(R"([+-]?[0-9]*[.]?[0-9]+|[+-]?[\w]+|[*\/+\-()]|sin|cos)");
+	std::regex reg(R"(sin|cos|[+-]?[0-9]*[.]?[0-9]+|[+-]?[\w]+|[*\/+\-()])");
 	auto t_begin = std::sregex_iterator(e.begin(), e.end(), reg);
 	auto t_end = std::sregex_iterator();
 
@@ -274,7 +450,7 @@ std::vector<std::string> Expr::tokenise(const std::string e) {
 		}
 		v.push_back(token);
 	} 
-	
+
 	v = prefixToPolish(v);
 	return v;
 }
@@ -284,27 +460,29 @@ std::vector<std::string> Expr::tokenise(const std::string e) {
 */
 Node* Expr::buildTree(std::vector<std::string>& tokens) {
 	std::stack<Node*> nodeStack;
+	int c = 1;
 	for (auto& t: tokens) {
 		if (std::isdigit(t[0]) || (t[0] == '-' && (int)t.length() > 1)) {
-			nodeStack.push(new Node(std::stod(t)));
+			nodeStack.push(new Node(std::stod(t), c));
 		}
 		else if (t == "sin" || t == "cos") {
-			Node* n = new Node(NodeType::WAVE, t[0]);
+			Node* n = new Node(NodeType::WAVE, t[0], c);
 			n->right = nodeStack.top();
 			nodeStack.pop();
 			nodeStack.push(n);
 		}		
 		else if (std::isalpha(t[0])) {
-			nodeStack.push(new Node(t));
+			nodeStack.push(new Node(t, c));
 		}
 		else {
-			Node* n = new Node(t[0]);
+			Node* n = new Node(t[0], c);
 			n->right = nodeStack.top();
 			nodeStack.pop();
 			n->left = nodeStack.top();
 			nodeStack.pop();
 			nodeStack.push(n);
 		}
+		c += 1;
 	}
 	return nodeStack.top();
 }

@@ -10,6 +10,20 @@
 
 #include "include/odeSystem.h"
 
+bool ODESystem::setInpFileName(const std::string i) {
+	std::regex name_r(R"(^s*([^/]+)/([^.]+).ode)");
+	std::smatch s;
+	if (std::regex_search(i, s, name_r) && s.size() == 3) {
+		systemName = s.str(2);
+		return true;
+	}
+	return false;
+}
+
+std::string ODESystem::getInpFileName() {
+	return systemName;
+}
+
 std::string ODESystem::parseVar(std::string &inp) {
 	std::regex var_r(R"(^\s*var\s*([^\s]+)\s*=\s*([^;]+)\s*;)");
 	std::smatch s;
@@ -109,11 +123,11 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d
 			}
 			if (d) {
 				for (size_t i = 0; i < ode.varNames.size(); i += 1) {
-					std::cerr << ode.varNames[i] << '=';
+					std::cerr << ode.varNames[i] << " = ";
 					ode.varValues[i]->print(); 
 					std::cerr << " [" << ode.interval[i].first << ";" << ode.interval[i].second << "]\n";
 				}
-				std::cerr << ode.time << '\n';
+				std::cerr << "time = " << ode.time << '\n';
 			}
 			ODES.push_back(ode);
 		}

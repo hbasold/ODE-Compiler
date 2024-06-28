@@ -10,12 +10,12 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 # Assuming the CSV has columns 'x', 'y', and 'z'
-ax.plot(data["x"], data["y"], data["z"], label="3D Line")
+ax.plot(data["x"], data["y"], data["z"])
 
 ax.set_xlabel("x")
 ax.set_ylabel("y")
 ax.set_zlabel("z")
-ax.set_title("3D Plot")
+ax.set_title("Lorenz system")
 
 plt.legend()
 plt.show()

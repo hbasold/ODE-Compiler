@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 data = pd.read_csv("outp_.csv")
 
 # Plot x, y, and z variables over time
-plt.plot(data["x"], data["y"], label="")
+plt.plot(data["y"], data["x"], label="")
 
 plt.xlabel("x")
 plt.ylabel("y")
-plt.title("lorenz.ode")
+plt.title("Lorenz System")
 
 plt.show()

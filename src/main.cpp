@@ -9,11 +9,13 @@
 static void
 showHelp(const char *progName)
 {
-  std::cerr << progName << " {-n|-s} {-d} [filename ...]\n";
+  std::cerr << progName << " {-n|-s} {-i} {-o} {-d} [filename ...]\n";
   std::cerr <<
 R"HERE(
     -n           No scaling performed.
     -s           Scale variables according to defined FPAALIM in constants.h.
+    -i           Digitally simulate the read system of ODEs.
+    -o           Parse the output into FPAA configuration format.
     -d           debug mode
 
     One of -n or -s must be specified.
@@ -28,10 +30,12 @@ int main(int argc, char* argv[]) {
 
   bool scaling = 0;
   bool noScaling = 0;
+  bool sim = 0;
+  bool out = 0;
   bool debug = 0;
   std::string inpFile;
 
-  while ((c = getopt(argc, argv, "sndi")) != -1) {
+  while ((c = getopt(argc, argv, "sndioh")) != -1) {
   	switch(c) {
   	case 's':
   		scaling = 1;
@@ -39,6 +43,12 @@ int main(int argc, char* argv[]) {
   	case 'n':
   		noScaling = 1;
 			break;
+    case 'i':
+      sim = 1;
+      break;
+    case 'o':
+      out = 1;
+      break;
     case 'd':
       debug = 1;
       break;
@@ -71,6 +81,11 @@ int main(int argc, char* argv[]) {
     showHelp(progName);
   	return -1;
   }
+  else if (!out && !sim) {
+    std::cerr << "Error: either output parsing or simulating has to be enabled\n";
+    showHelp(progName);
+    return -1;
+  }
 	std::ifstream file(inpFile);
 
 	if (!file.is_open()) {
@@ -78,11 +93,24 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	ODESystem a;
-	a.readODESystem(file, scaling, debug);
-	a.simulate();
+	ODESystem sys;
+  if (!sys.setInpFileName(inpFile)) {
+    file.close();
+    std::cerr << "Error: file must use .ode suffix\n";
+    return -1;
+  }
+	sys.readODESystem(file, scaling, debug);
+  file.close();
 
-	file.close();
+  if (out) {
+    sys.parseFPAAOutput();
+    std::cout << "Output placed in FPAAres/" << sys.getInpFileName() << ".FPAAconfig\n";
+  }
+  if (sim) {
+    sys.simulate();
+    std::cout << "Simulation output placed in res/" << sys.getInpFileName() << ".csv\n";
+  }
+
 
 	return 0;
 }
