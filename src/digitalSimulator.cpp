@@ -17,7 +17,8 @@ std::vector<var> ODESystem::extractConstants(const ODE& ode) const {
 	    var v;
 	    v.name = ode.varNames[i];
 	    v.value = ode.varValues[i]->getInit();
-	    v.scalar = ode.varValues[i]->getScalar();
+	    v.rho = ode.varValues[i]->getRho();
+      v.delta = ode.varValues[i]->getDelta();
 	  	constants.push_back(v);
 	  }
 	}
@@ -31,7 +32,8 @@ std::vector<var> ODESystem::extractVariables(const ODE& ode) const {
     	var v;
     	v.name = ode.varNames[i];
     	v.value = ode.varValues[i]->getInit();
-    	v.scalar = ode.varValues[i]->getScalar();
+      v.rho = ode.varValues[i]->getRho();
+      v.delta = ode.varValues[i]->getDelta();
       variables.push_back(v);
     }
   }
@@ -55,7 +57,8 @@ std::vector<global_var> ODESystem::extractGlobals() const {
 		v.name = it.first;
 		v.local_name = std::get<0>(it.second);
 		v.value = std::get<1>(it.second);
-		v.scalar = std::get<2>(it.second);
+		v.rho = std::get<2>(it.second).rho;
+    v.delta = std::get<2>(it.second).delta;
 		globals.push_back(v);
 	}
 	return globals;
@@ -136,12 +139,6 @@ void ODESystem::simulate() {
     std::cerr << "Can't open outputfile\n";
     return;
 	}
-	// outputFile << "t,";
-	// for (const auto &vars : variableSets) {
-	//  	for (const auto &v : vars) {
-	//  		outputFile << v.name << ',';
-	// 	}
-	//} outputFile << '\n';
 
 	outputFile << "time,";
 	for (const auto& g : global) {
@@ -163,9 +160,6 @@ void ODESystem::simulate() {
       		}
       	}
       }
-      // for (size_t j = 0; j < stateVectors[i].size(); j += 1) {
-      // 	outputFile << stateVectors[i][j] << ',';
-      // } 
     }
     outputFile << '\n';
   }

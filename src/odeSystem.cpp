@@ -57,7 +57,8 @@ void ODESystem::parseEmit(std::string &inp) {
 	std::regex emit_r(R"(^\s*emit\s*([^\s]+)\s*as\s*([^\s]+)\s*;)");
 	std::smatch s; 
 	if (std::regex_search(inp, s, emit_r) && s.size() == 3) {
-		global[s[2]] = std::make_tuple(s[1], 0.0, 0.0);
+		scalars sc = {0.0, 0.0};
+		global[s[2]] = std::make_tuple(s[1], 0.0, sc);
 	}
 }
 
@@ -136,7 +137,8 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d
   for (auto& it : global) {
     std::string varName = std::get<0>(it.second);
     double initialValue = 0.0;
-    double scalar = 0.0;
+    double rho = 0.0;
+    double delta = 0.0;
 
     // Find the initial value in the ODES
     for (const auto& ode : ODES) {
@@ -144,15 +146,18 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d
       if (itVar != ode.varNames.end()) {
         size_t index = std::distance(ode.varNames.begin(), itVar);
         initialValue = ode.varValues[index]->getInit();
-        scalar = ode.varValues[index]->getScalar();
+        rho = ode.varValues[index]->getRho();
+        delta = ode.varValues[index]->getDelta();
         break;
     	}
   	}
-    it.second = std::make_tuple(varName, initialValue, scalar);
+  	scalars sc = {rho, delta};
+    it.second = std::make_tuple(varName, initialValue, sc);
   }
   if (d) {
   	for (auto& it : global) {
   		std::cerr << std::get<0>(it.second) << " emitted as " << it.first << " with " << std::get<1>(it.second) << '\n';
+  		std::cerr << "Scalars (rho)" << std::get<2>(it.second).rho << " (delta)" << std::get<2>(it.second).delta << '\n';
   	}
   }
 

@@ -51,40 +51,39 @@ double Expr::Evaluate(const std::vector<var> constants,
 											const std::vector<var> vars,
 											const std::vector<global_var> global) {
   
-  std::vector<var> merged_vars = constants;
-  for (const auto& v : vars) {
-    merged_vars.push_back(v);
-  }	
+  std::vector<var> merged_vars = vars;
 
   for (const auto& g : global) {
   	var v;
   	v.name = g.name;
   	v.value = g.value;
-  	v.scalar = g.scalar;
+  	v.rho = g.rho;
+  	v.delta = g.delta;
   	merged_vars.push_back(v);
   }
 
   double res = 0.0;
-	if (scalar != 0.0) {
+	if (rho != 0.0) {
 		if (root->op == NodeType::INTEG) {
-			res = EvaluateBUScaled(merged_vars, root->right) * scalar;
+			res = rho * (EvaluateBUScaled(merged_vars, constants, root->right) - delta);
 		}
 		else {
-			res = EvaluateBUScaled(merged_vars, root) * scalar;
+			res = rho * (EvaluateBUScaled(merged_vars, constants, root) - delta);
 		}
 	}
 	else {
 		if (root->op == NodeType::INTEG) {
-			res = EvaluateBU(merged_vars, root->right);
+			res = EvaluateBU(merged_vars, constants, root->right);
 		}
 		else {
-			res = EvaluateBU(merged_vars, root);
+			res = EvaluateBU(merged_vars, constants, root);
 		}		
 	}
 	return res;
 }
 
 double Expr::EvaluateBU(const std::vector<var>& vars,
+												const std::vector<var>& constants,
 												Node* r) {
 
 	double leftVal;
@@ -97,27 +96,34 @@ double Expr::EvaluateBU(const std::vector<var>& vars,
 	}
 	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
-    auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
-        return item.name == x;
+    auto it = std::find_if(constants.begin(), constants.end(), [&x](const var& c) {
+        return c.name == x;
     });
-		if (it != vars.end()) {
+		if (it != constants.end()) {
 			return it->value;
+		}
+
+    it = std::find_if(vars.begin(), vars.end(), [&x](const var& v) {
+        return v.name == x;
+    });
+		if (it2 != vars.end()) {
+			return it2->value;
 		}
 		else {
 			throw std::invalid_argument("Variable not found\n");
 		}
 	}
 	else if (r->op == NodeType::WAVE && r->oper == 's') {
-		rightVal = EvaluateBU(vars, r->right);
+		rightVal = EvaluateBU(vars, constants, r->right);
 		return std::sin(rightVal);
 	} 
 	else if (r->op == NodeType::WAVE && r->oper == 'c') {
-		rightVal = EvaluateBU(vars, r->right);
+		rightVal = EvaluateBU(vars, constants, r->right);
 		return std::cos(rightVal);
 	}
 
-	leftVal = EvaluateBU(vars, r->left);
-	rightVal = EvaluateBU(vars, r->right);
+	leftVal = EvaluateBU(vars, constants, r->left);
+	rightVal = EvaluateBU(vars, constants, r->right);
 
 	switch(r->oper) {
 	case '+':
@@ -137,6 +143,7 @@ double Expr::EvaluateBU(const std::vector<var>& vars,
 }
 
 double Expr::EvaluateBUScaled(const std::vector<var>& vars,
+															const std::vector<var>& constants,
 															Node* r) {
 	double leftVal;
 	double rightVal;
@@ -145,31 +152,38 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 		return 0.0;
 	}
 	else if (r->op == NodeType::NUM) {
-		return r->value * scalar;
+		return ((r->value + delta) * rho);
 	}
 	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
-		auto it = std::find_if(vars.begin(), vars.end(), [&x](const var& item) {
-			return item.name == x;
+		auto it = std::find_if(constants.begin(), constants.end(), [&x](const var& c) {
+			return c.name == x;
+		});
+		if (it != constants.end()) {
+			return ((it->value + it->delta) / it->rho);
+		}
+
+		it = std::find_if(vars.begin(), vars.end(), [&x](const var& v) {
+			return v.name == x;
 		});
 		if (it != vars.end()) {
-			return (it->value / it->scalar);
+			return ((it->value + it->delta) / it->rho);
 		}
 		else {
 			throw std::invalid_argument("Variable not found\n");
 		}
 	} 
 	else if (r->op == NodeType::WAVE && r->oper == 's') {
-		rightVal = EvaluateBU(vars, r->right);
+		rightVal = EvaluateBUScaled(vars, constants, r->right);
 		return std::sin(rightVal);
 	} 
 	else if (r->op == NodeType::WAVE && r->oper == 'c') {
-		rightVal = EvaluateBU(vars, r->right);
+		rightVal = EvaluateBUScaled(vars, constants, r->right);
 		return std::cos(rightVal);
 	}
 
-	leftVal = EvaluateBUScaled(vars, r->left);
-	rightVal = EvaluateBUScaled(vars, r->right);
+	leftVal = EvaluateBUScaled(vars, constants, r->left);
+	rightVal = EvaluateBUScaled(vars, constants, r->right);
 
 	switch(r->oper) {
 	case '+':
@@ -318,7 +332,7 @@ void Expr::FPAASetCABs(std::ofstream &of, Node* r, const std::unordered_map<std:
 		throw std::invalid_argument("Invalid node type\n");
 	}
 
-	of << "\t\tscale = " << scalar << ";\n\t};\n";
+	of << "\t\tscale = " << rho << ";\n\t};\n";
 }
 
 void Expr::FPAASetOutputs(std::ofstream &of,
@@ -420,16 +434,35 @@ std::vector<std::string> Expr::prefixToPolish(std::vector<std::string> v) {
 */
 
 void Expr::setScalar(std::pair<double,double> i) {
-	scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
-	initCondit *= scalar;
+	// scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
+	// initCondit *= scalar;
 
-	if (root->op == NodeType::NUM) {
-		root->value *= scalar;
+	// if (root->op == NodeType::NUM) {
+	// 	root->value *= scalar;
+	// }
+
+	if (i.first != i.second) {
+		rho = (2 * FPAALIM) / (i.second - i.first);
+		delta = (i.first + i.second) / 2;
+		initCondit = rho * (initCondit - delta); 
+	}
+	else {
+		rho = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
+		delta = 0.0;
+		initCondit *= rho;
+
+		if (root->op == NodeType::NUM) {
+			root->value *= rho;
+		}
 	}
 }
 
-double Expr::getScalar() {
-	return scalar;
+double Expr::getRho() {
+	return rho;
+}
+
+double Expr::getDelta() {
+	return delta;
 }
 
 /*

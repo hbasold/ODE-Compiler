@@ -19,6 +19,11 @@ struct ODE {
 	double time;
 };
 
+struct scalars {
+	double rho;
+	double delta;
+};
+
 class ODESystem {
 public:
 	~ODESystem() {
@@ -49,7 +54,7 @@ public:
 
 private:
 	std::vector<ODE> ODES;
-	std::unordered_map<std::string, std::tuple<std::string, double, double>> global;
+	std::unordered_map<std::string, std::tuple<std::string, double, scalars>> global;
 	std::string systemName;
 };
 

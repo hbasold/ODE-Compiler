@@ -13,14 +13,16 @@
 struct var {
 	std::string name;
 	double value;
-	double scalar;
+	double rho;
+	double delta;
 };
 
 struct global_var {
 	std::string local_name;
 	std::string name;
 	double value;
-	double scalar;
+	double rho;
+	double delta;
 };
 
 enum class NodeType {
@@ -52,7 +54,7 @@ struct Node {
 
 class Expr {
 public:
-	Expr() : root(nullptr), initCondit(0.0), scalar(0.0){}
+	Expr() : root(nullptr), initCondit(0.0), rho(0.0), delta(0.0){}
 	~Expr() {
 		removeTree(root);
 	}
@@ -70,7 +72,10 @@ public:
 	bool isInteg();
 
 	void setScalar(std::pair<double,double> i);
-	double getScalar();
+
+	double getRho();
+	double getDelta();
+	
 	void FPAAPrintConfig(std::ofstream &of, 
 						 const int c, const std::vector<var> constants,
 						 const std::vector<var> vars,
@@ -88,8 +93,8 @@ private:
 
 	void printTree(Node* r);
 
-	double EvaluateBU(const std::vector<var>& vars, Node* r);
-	double EvaluateBUScaled(const std::vector<var>& vars, Node* r);
+	double EvaluateBU(const std::vector<var>& vars, const std::vector<var>& constants, Node* r);
+	double EvaluateBUScaled(const std::vector<var>& vars, const std::vector<var>& constants, Node* r);
 
 	std::unordered_map<std::string, std::string> FPAASetInputs(std::ofstream &of, 
 										 																				 const int c, 
@@ -108,7 +113,8 @@ private:
 
 	std::vector<std::string> tokens{};
 	double initCondit;
-	double scalar;
+	double rho;
+	double delta;
 };
 
 #endif
