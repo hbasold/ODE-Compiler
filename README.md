@@ -31,25 +31,25 @@ system {
 ## Output FPAA Configuration format
 The output format is generated using the following grammar
 ```
-FPAASystem (*@::=@*) {<FPAAInput>} 
+FPAASystem ::= {<FPAAInput>} 
             |  {<FPAAInput>} <FPAASystem>
-FPAAInput  (*@::=@*)  <var> <FPAAInput>
+FPAAInput  ::=  <var> <FPAAInput>
             |   <var> <CABConfig>
             |   <int> <FPAAInput>
             |   <int> <CABConfig>
-CABConfig  (*@::=@*)  <CABConfig> <CABConfig>  
+CABConfig  ::=  <CABConfig> <CABConfig>  
             |   <CABConfig> <FPAAOutput>
             |   <op> <inp> <inp> <scale>
             |   <op> <inp> <scale>
-FPAAOutput (*@::=@*)  <var> <FPAAOutput>
+FPAAOutput ::=  <var> <FPAAOutput>
             |   <var>
-op    (*@::=@*) <sum> | <min> | <mul> | <div> | <sin> | <cos> | <integ>
-inp   (*@::=@*) <FPAAInput>
-scale (*@::=@*) <int>
-var   (*@::=@*) <var> <lett> | <lett>
-int   (*@::=@*) <int> <num> | <int>.<int> | <num>
-lett  (*@$\in$@*) {'a', ... , 'z', '_'}
-num   (*@$\in$@*) {0, ... , 9}
+op    ::= <sum> | <min> | <mul> | <div> | <sin> | <cos> | <integ>
+inp   ::= <FPAAInput>
+scale ::= <int>
+var   ::= <var> <lett> | <lett>
+int   ::= <int> <num> | <int>.<int> | <num>
+lett  &in; {'a', ... , 'z', '_'}
+num   &in; {0, ... , 9}
 ```
 
 ## Digital simulator
