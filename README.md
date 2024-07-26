@@ -48,8 +48,8 @@ inp   ::= <FPAAInput>
 scale ::= <int>
 var   ::= <var> <lett> | <lett>
 int   ::= <int> <num> | <int>.<int> | <num>
-lett  &in; {'a', ... , 'z', '_'}
-num   &in; {0, ... , 9}
+lett  in {'a', ... , 'z', '_'}
+num   in {0, ... , 9}
 ```
 
 ## Digital simulator
