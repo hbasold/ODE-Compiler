@@ -106,8 +106,8 @@ double Expr::EvaluateBU(const std::vector<var>& vars,
     it = std::find_if(vars.begin(), vars.end(), [&x](const var& v) {
         return v.name == x;
     });
-		if (it2 != vars.end()) {
-			return it2->value;
+		if (it != vars.end()) {
+			return it->value;
 		}
 		else {
 			throw std::invalid_argument("Variable not found\n");
@@ -430,42 +430,6 @@ std::vector<std::string> Expr::prefixToPolish(std::vector<std::string> v) {
 }
 
 /*
-*		Perform a BU walk and set the scalar for every node
-*/
-
-void Expr::setScalar(std::pair<double,double> i) {
-	// scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
-	// initCondit *= scalar;
-
-	// if (root->op == NodeType::NUM) {
-	// 	root->value *= scalar;
-	// }
-
-	if (i.first != i.second) {
-		rho = (2 * FPAALIM) / (i.second - i.first);
-		delta = (i.first + i.second) / 2;
-		initCondit = rho * (initCondit - delta); 
-	}
-	else {
-		rho = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
-		delta = 0.0;
-		initCondit *= rho;
-
-		if (root->op == NodeType::NUM) {
-			root->value *= rho;
-		}
-	}
-}
-
-double Expr::getRho() {
-	return rho;
-}
-
-double Expr::getDelta() {
-	return delta;
-}
-
-/*
 *		Tokenise an expression into a vector of strings
 */
 std::vector<std::string> Expr::tokenise(const std::string e) {
@@ -520,6 +484,46 @@ Node* Expr::buildTree(std::vector<std::string>& tokens) {
 	return nodeStack.top();
 }
 
+/*
+*		Perform a BU walk and set the scalar for every node
+*/
+
+void Expr::setScalar(std::pair<double,double> i) {
+	// scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
+	// initCondit *= scalar;
+
+	// if (root->op == NodeType::NUM) {
+	// 	root->value *= scalar;
+	// }
+
+	if (i.first != i.second) {
+		rho = (2 * FPAALIM) / (i.second - i.first);
+		delta = (i.first + i.second) / 2;
+		initCondit = rho * (initCondit - delta); 
+	}
+	else {
+		rho = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
+		delta = 0.0;
+		initCondit *= rho;
+
+		if (root->op == NodeType::NUM) {
+			root->value *= rho;
+		}
+	}
+}
+
+double Expr::getRho() {
+	return rho;
+}
+
+double Expr::getDelta() {
+	return delta;
+}
+
 double Expr::getInit() {
 	return initCondit;
+}
+
+Node* Expr::getRoot() {
+	return root;
 }

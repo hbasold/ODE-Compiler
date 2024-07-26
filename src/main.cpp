@@ -9,11 +9,12 @@
 static void
 showHelp(const char *progName)
 {
-  std::cerr << progName << " {-n|-s} {-i} {-o} {-d} [filename ...]\n";
+  std::cerr << progName << " {-n|-s} {-k} {-i} {-o} {-d} [filename ...]\n";
   std::cerr <<
 R"HERE(
     -n           No scaling performed.
     -s           Scale variables according to defined FPAALIM in constants.h.
+    -k           Compare and cluster the expressions in order to minimise configuration changes
     -i           Digitally simulate the read system of ODEs.
     -o           Parse the output into FPAA configuration format.
     -d           debug mode
@@ -30,12 +31,13 @@ int main(int argc, char* argv[]) {
 
   bool scaling = 0;
   bool noScaling = 0;
+  bool clustering = 0;
   bool sim = 0;
   bool out = 0;
   bool debug = 0;
   std::string inpFile;
 
-  while ((c = getopt(argc, argv, "sndioh")) != -1) {
+  while ((c = getopt(argc, argv, "snkdioh")) != -1) {
   	switch(c) {
   	case 's':
   		scaling = 1;
@@ -43,6 +45,9 @@ int main(int argc, char* argv[]) {
   	case 'n':
   		noScaling = 1;
 			break;
+    case 'k':
+      clustering = 1;
+      break;
     case 'i':
       sim = 1;
       break;
@@ -99,7 +104,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error: file must use .ode suffix\n";
     return -1;
   }
-	sys.readODESystem(file, scaling, debug);
+	sys.readODESystem(file, scaling, clustering, debug);
   file.close();
 
   if (out) {

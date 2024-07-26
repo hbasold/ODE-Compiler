@@ -63,8 +63,6 @@ public:
 
 	void parse(std::string e);
 
-	double getInit();
-
 	double Evaluate(const std::vector<var> constants,
 					const std::vector<var> vars,
 					const std::vector<global_var> global);
@@ -72,15 +70,17 @@ public:
 	bool isInteg();
 
 	void setScalar(std::pair<double,double> i);
-
-	double getRho();
-	double getDelta();
 	
 	void FPAAPrintConfig(std::ofstream &of, 
 						 const int c, const std::vector<var> constants,
 						 const std::vector<var> vars,
 						 const std::vector<global_var> global,
 						 const std::string exprName);
+
+	double getInit();
+	double getRho();
+	double getDelta();
+	Node* getRoot();
 
 private:
 	Node* parseTree(std::string e);

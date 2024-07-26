@@ -68,7 +68,10 @@ void ODESystem::setScalars(ODE o) {
 	}	
 }	
 
-int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d) {
+int ODESystem::readODESystem(std::ifstream& inp, 
+														const bool scaled, 
+														const bool clustering,
+														const bool d) {
 	std::string line;
 
 	std::regex system_r(R"(^\s*system\s+)");
@@ -128,7 +131,7 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d
 					ode.varValues[i]->print(); 
 					std::cerr << " [" << ode.interval[i].first << ";" << ode.interval[i].second << "]\n";
 				}
-				std::cerr << "time = " << ode.time << '\n';
+				std::cerr << "time = " << ode.time << "\n\n";
 			}
 			ODES.push_back(ode);
 		}
@@ -154,11 +157,28 @@ int ODESystem::readODESystem(std::ifstream& inp, const bool scaled, const bool d
   	scalars sc = {rho, delta};
     it.second = std::make_tuple(varName, initialValue, sc);
   }
+  //compare and cluster variable expressions making it so the least changes have to occur between each config
+  if (clustering) {
+  	for (auto& ode : ODES) {
+  		ODE tmp = cluster(ode);
+  		ode = tmp;
+
+			if (d) {
+				std::cerr << "Reordered system to: \n";  		
+	  		for (size_t i = 0; i < ode.varValues.size(); i += 1) {
+	  			std::cerr << ode.varNames[i] << " = ";
+	  			ode.varValues[i]->print();
+	  			std::cerr << " [" << ode.interval[i].first << ";" << ode.interval[i].second << "]\n";
+	  		}
+	  		std::cerr << "time = " << ode.time << "\n\n";
+  		}
+  	}
+  }
   if (d) {
   	for (auto& it : global) {
   		std::cerr << std::get<0>(it.second) << " emitted as " << it.first << " with " << std::get<1>(it.second) << '\n';
   		std::cerr << "Scalars (rho)" << std::get<2>(it.second).rho << " (delta)" << std::get<2>(it.second).delta << '\n';
-  	}
+  	} std::cerr << "\n";
   }
 
 	return 0;	

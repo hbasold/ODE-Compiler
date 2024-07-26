@@ -40,7 +40,7 @@ std::vector<var> ODESystem::extractVariables(const ODE& ode) const {
   return variables;
 }
 
-std::vector<Expr*> extractVariablesInteg(const ODE& ode) {
+std::vector<Expr*> ODESystem::extractVariablesInteg(const ODE& ode) const {
   std::vector<Expr*> variables;
   for (size_t i = 0; i < ode.varValues.size(); ++i) {
     if (ode.varValues[i]->isInteg()) {

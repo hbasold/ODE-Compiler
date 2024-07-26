@@ -34,7 +34,10 @@ public:
 		}
 	}
 
-	int readODESystem(std::ifstream& inp, const bool scaled, const bool d);
+	int readODESystem(std::ifstream& inp, 
+										const bool scaled, 
+										const bool clustering,
+										const bool d);
 
 	std::string parseVar(std::string& inp);
 	std::pair<double, double> parseInterval(std::string &inp);
@@ -47,10 +50,15 @@ public:
 	std::vector<var> extractConstants(const ODE& ode) const;
 	std::vector<var> extractVariables(const ODE& ode) const;
 	std::vector<global_var> extractGlobals() const;
+	std::vector<Expr*> extractVariablesInteg(const ODE& ode) const;
 
 	void parseFPAAOutput();
 	bool setInpFileName(const std::string i);
 	std::string getInpFileName();
+
+	int editTreeDistance(const Node* root1, const Node* root2);
+	std::vector<std::vector<int>> computeSimilarityMatrix(const std::vector<Expr*> vars);
+	ODE cluster(ODE ode);
 
 private:
 	std::vector<ODE> ODES;

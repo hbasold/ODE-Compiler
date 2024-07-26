@@ -2,7 +2,7 @@ CC = g++
 
 CompileParms = -c -Wall -std=c++17 -O2
 
-OBJS = main.o odeSystem.o digitalSimulator.o FPAAParser.o expression.o
+OBJS = main.o odeSystem.o digitalSimulator.o FPAAParser.o compareAndCluster.o expression.o
 
 Opdr: $(OBJS)
 	$(CC) $(OBJS) -o compiler
@@ -21,6 +21,9 @@ digitalSimulator.o: src/digitalSimulator.cpp src/include/odeSystem.h
 
 FPAAParser.o: src/FPAAParser.cpp src/include/odeSystem.h
 	$(CC) $(CompileParms) src/FPAAParser.cpp
+
+compareAndCluster.o: src/compareAndCluster.cpp src/include/odeSystem.h
+	$(CC) $(CompileParms) src/compareAndCluster.cpp
 
 main.o: src/main.cpp src/include/odeSystem.h
 	$(CC) $(CompileParms) src/main.cpp
