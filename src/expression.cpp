@@ -65,10 +65,10 @@ double Expr::Evaluate(const std::vector<var> constants,
   double res = 0.0;
 	if (rho != 0.0) {
 		if (root->op == NodeType::INTEG) {
-			res = EvaluateBUScaled(merged_vars, constants, root->right) * rho;
+			res = (EvaluateBUScaled(merged_vars, constants, root->right) - delta) * rho;
 		}
 		else {
-			res = EvaluateBUScaled(merged_vars, constants, root) * rho;
+			res = (EvaluateBUScaled(merged_vars, constants, root) - delta) * rho;
 		}
 	}
 	else {
