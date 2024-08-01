@@ -65,10 +65,10 @@ double Expr::Evaluate(const std::vector<var> constants,
   double res = 0.0;
 	if (rho != 0.0) {
 		if (root->op == NodeType::INTEG) {
-			res = rho * (EvaluateBUScaled(merged_vars, constants, root->right) - delta);
+			res = EvaluateBUScaled(merged_vars, constants, root->right) * rho;
 		}
 		else {
-			res = rho * (EvaluateBUScaled(merged_vars, constants, root) - delta);
+			res = EvaluateBUScaled(merged_vars, constants, root) * rho;
 		}
 	}
 	else {
@@ -152,7 +152,7 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 		return 0.0;
 	}
 	else if (r->op == NodeType::NUM) {
-		return ((r->value + delta) * rho);
+		return ((r->value - delta) * rho);
 	}
 	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
@@ -510,6 +510,8 @@ void Expr::setScalar(std::pair<double,double> i) {
 			root->value *= rho;
 		}
 	}
+
+	std::cout << rho << ' ' << delta << '\n';
 }
 
 double Expr::getRho() {

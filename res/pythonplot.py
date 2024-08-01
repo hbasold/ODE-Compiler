@@ -2,10 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load data from CSV file
-data = pd.read_csv("simple.csv")
+data = pd.read_csv("lorenz.csv")
 
 # Plot x, y, and z variables over time
-plt.plot(data["time"], data["x"], label="")
+plt.plot(data["x"], data["y"], label="")
 
 plt.xlabel("x")
 plt.ylabel("y")

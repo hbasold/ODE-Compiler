@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <tuple>
@@ -61,6 +62,7 @@ std::vector<global_var> ODESystem::extractGlobals() const {
     v.delta = std::get<2>(it.second).delta;
 		globals.push_back(v);
 	}
+  std::reverse(globals.begin(), globals.end());
 	return globals;
 }
 
