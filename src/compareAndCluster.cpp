@@ -13,16 +13,33 @@
 int ODESystem::editTreeDistance(const Node* root1, const Node* root2) {
 	if (root1 == nullptr) {
 		if (root2) {
+			if (!root2->left && !root2->right) {
+				return 0;
+			}
 			return 1 + editTreeDistance(nullptr, root2->left) + editTreeDistance(nullptr, root2->right);
 		}
 		return 0;
 	}
 	if (root2 == nullptr) {
 		if (root1) {
+			if (!root1->left && !root1->right) {
+				return 0;
+			}
 			return 1 + editTreeDistance(root1->left, nullptr) + editTreeDistance(root1->right, nullptr);
 		}
 		return 0;
 	}
+
+	if (!root1->left && !root2->right && !root2->left && !root2->right) {
+		return 0;
+	}
+	if (!root1->left && !root1->right) {
+		return editTreeDistance(nullptr, root2);
+	}
+	if (!root2->left && !root2->right) {
+		return editTreeDistance(root1, nullptr);
+	}
+
 
 	int init = (root1->op == root2->op && root1->oper == root2->oper) ? 0 : 1;
 	
@@ -76,6 +93,13 @@ ODE ODESystem::cluster(ODE ode) {
 	std::vector<int> clusterLabels(n);
 	for (size_t i = 0; i < n; i += 1) {
 		clusterLabels[i] = i;
+	}
+
+	for (size_t i = 0; i < n; i += 1) {
+		for (size_t j = 0; j < n; j += 1) {
+			std::cerr << simMatrix[i][j] << ' ';
+		}
+		std::cerr << '\n';
 	}
 
 	int cur = n;

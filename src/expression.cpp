@@ -65,10 +65,10 @@ double Expr::Evaluate(const std::vector<var> constants,
   double res = 0.0;
 	if (rho != 0.0) {
 		if (root->op == NodeType::INTEG) {
-			res = (EvaluateBUScaled(merged_vars, constants, root->right) - delta) * rho;
+			res = (EvaluateBUScaled(merged_vars, constants, root->right) - delta) / rho;
 		}
 		else {
-			res = (EvaluateBUScaled(merged_vars, constants, root) - delta) * rho;
+			res = (EvaluateBUScaled(merged_vars, constants, root) - delta) / rho;
 		}
 	}
 	else {
@@ -152,7 +152,7 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 		return 0.0;
 	}
 	else if (r->op == NodeType::NUM) {
-		return ((r->value - delta) * rho);
+		return ((r->value / rho) + delta);
 	}
 	else if (r->op == NodeType::VAR) {
 		std::string x = r->name;
@@ -160,14 +160,14 @@ double Expr::EvaluateBUScaled(const std::vector<var>& vars,
 			return c.name == x;
 		});
 		if (it != constants.end()) {
-			return ((it->value + it->delta) / it->rho);
+			return ((it->value / it->rho) + it->delta);
 		}
 
 		it = std::find_if(vars.begin(), vars.end(), [&x](const var& v) {
 			return v.name == x;
 		});
 		if (it != vars.end()) {
-			return ((it->value + it->delta) / it->rho);
+			return ((it->value / it->rho) + it->delta);
 		}
 		else {
 			throw std::invalid_argument("Variable not found\n");
@@ -489,12 +489,6 @@ Node* Expr::buildTree(std::vector<std::string>& tokens) {
 */
 
 void Expr::setScalar(std::pair<double,double> i) {
-	// scalar = FPAALIM / std::max(std::abs(i.first), std::abs(i.second));
-	// initCondit *= scalar;
-
-	// if (root->op == NodeType::NUM) {
-	// 	root->value *= scalar;
-	// }
 
 	if (i.first != i.second) {
 		rho = (2 * FPAALIM) / (i.second - i.first);
