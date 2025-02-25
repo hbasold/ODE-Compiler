@@ -298,10 +298,12 @@ void Expr::FPAASetCABs(std::ofstream &of, Node* r, const std::unordered_map<std:
 		switch(r->oper) {
 		case 's':
 			of << "\t\top = sin;\n";
+      break;
 		case 'c':
 			of << "\t\top = cos;\n";
+      break;
 		default:
-			throw std::invalid_argument("Invalid wave function\n");
+			throw std::invalid_argument(std::string("Invalid wave function: ") + r->oper + "\n");
 		}
 		of << "\t\tinp0 = ";
 		FPAAPrintInputVariables(of, r->right, inputMap);
@@ -468,7 +470,7 @@ Node* Expr::buildTree(std::vector<std::string>& tokens) {
 			nodeStack.pop();
 			nodeStack.push(n);
 		}		
-		else if (std::isalpha(t[0])) {
+		else if (std::isalpha(t[0]) || t[0] == '_') {
 			nodeStack.push(new Node(t, c));
 		}
 		else {
